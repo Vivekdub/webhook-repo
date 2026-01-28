@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GitHub Webhook Feed</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f0f0f;
+      color: #eaeaea;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+
+    .feed {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid #2a2a2a;
+      font-size: 14px;
+    }
+
+    .card.push {
+      border-left: 4px solid #f5c542;
+      background: #1c1a10;
+    }
+
+    .card.pull_request {
+      border-left: 4px solid #4aa3ff;
+      background: #10161c;
+    }
+
+    .card.merge {
+      border-left: 4px solid #3bd16f;
+      background: #0f1c14;
+    }
+
+    .type {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .time {
+      font-size: 11px;
+      opacity: 0.5;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>GitHub Activity Feed</h1>
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:5000/events";
+
+    function formatDate(ts) {
+      if (!ts) return "";
+      const d = new Date(ts);
+      return d.toUTCString();
+    }
+
+    function formatEvent(e) {
+      if (e.type === "push") {
+        return `${e.author} pushed to ${e.to_branch} on ${formatDate(e.timestamp)}`;
+      }
+
+      if (e.type === "pull_request") {
+        return `${e.author} submitted a pull request from ${e.from_branch} to ${e.to_branch} on ${formatDate(e.timestamp)}`;
+      }
+
+      if (e.type === "merge") {
+        return `${e.author} merged branch ${e.from_branch} to ${e.to_branch} on ${formatDate(e.timestamp)}`;
+      }
+
+      return "Unknown event";
+    }
+
+    async function fetchEvents() {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        const feed = document.getElementById("feed");
+        feed.innerHTML = "";
+
+        data.forEach(e => {
+          const card = document.createElement("div");
+          card.className = `card ${e.type}`;
+
+          const type = document.createElement("div");
+          type.className = "type";
+          type.innerText = e.type;
+
+          const text = document.createElement("div");
+          text.innerText = formatEvent(e);
+
+          const time = document.createElement("div");
+          time.className = "time";
+          time.innerText = formatDate(e.timestamp);
+
+          card.appendChild(type);
+          card.appendChild(text);
+          card.appendChild(time);
+
+          feed.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+
+    // Initial load
+    fetchEvents();
+
+    // Poll every 15 seconds
+    setInterval(fetchEvents, 15000);
+  </script>
+
+</body>
+</html>
